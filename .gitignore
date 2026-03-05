@@ -1,0 +1,6 @@
+*.exe
+*.dbg
+nul
+Backup/
+manual.md
+test.txt
