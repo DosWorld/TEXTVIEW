@@ -94,7 +94,6 @@ This keeps RAM usage constant at ~256 KB (8 x 32 KB) regardless of file size, wh
 |------|-------------|
 | `TEXTREAD.ASM` | Assembly source code |
 | `TEXTREAD.COM` | Pre-built DOS binary |
-| `IMPL_PLAN.md` | Detailed implementation plan for the demand-paged architecture |
 | `THECHAIR.TXT` | Sample text file for testing (72 KB, ~1100 lines) |
 
 ## License
