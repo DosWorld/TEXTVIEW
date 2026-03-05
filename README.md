@@ -2,7 +2,7 @@
 
 An 8086 text file viewer for MS-DOS with demand-paged virtual memory.
 
-Written in 16-bit x86 assembly for the [agent86](https://github.com/anthropics/agent86) assembler. Produces a standard .COM binary that runs on any DOS-compatible system (MS-DOS, FreeDOS, DOSBox, etc.).
+Written in 16-bit x86 assembly for the [agent86](https://github.com/cookertron/agent86) assembler. Produces a standard .COM binary that runs on any DOS-compatible system (MS-DOS, FreeDOS, DOSBox, etc.).
 
 ## Features
 
