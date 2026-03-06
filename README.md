@@ -2,6 +2,9 @@
 
 An 8086 text file viewer for MS-DOS with demand-paged virtual memory.
 
+![Image ASCII Table addon](https://github.com/DosWorld/TEXTVIEW/raw/main/TEXTVIEW.PNG)
+
+
 ## Features
 
 - View text files of any size up to 32 MB
