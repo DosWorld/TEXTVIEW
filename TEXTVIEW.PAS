@@ -81,9 +81,38 @@ var
 
   text_rows,
   screen_cols, screen_rows : Integer;
-  SysChars : String;
+  SysChars, printFileName : String;
 {----------------------------- Helper procedures -----------------------------}
 procedure Render;forward;
+
+FUNCTION IsVga : BOOLEAN;ASSEMBLER;
+ASM
+        MOV  AX, $1A00
+        INT  $10           {check for VGA/MCGA}
+        CMP  AL, $1A
+        JNE  @err          {no VGA Bios}
+        CMP  BL, 7
+        JB   @err          {is VGA or better?}
+        CMP  BL, $FF
+        JNE  @ok
+@err:
+        XOR  AL, AL
+        JMP  @end
+@ok:
+        MOV  AL, 1
+@end:
+END;
+
+
+FUNCTION IsMonochrome : BOOLEAN;ASSEMBLER;
+ASM
+        PUSH DS
+        MOV  AX, WORD PTR [seg0040]
+        MOV  DS, AX
+        MOV  AL, BYTE PTR [$0065]
+        POP  DS
+        AND  AL, 4
+END;
 
 function getheight : integer;assembler;
 asm
@@ -116,6 +145,17 @@ procedure ErrorMsg(const s: string);
 begin
   Writeln(s);
   Halt(1);
+end;
+
+function BaseName(s: STRING): STRING;
+var     i: INTEGER;
+begin
+        for i := Length(s) downto 1 do
+                if s[i] in ['\', '/', ':'] then begin
+                        BaseName := Copy(s, i + 1, 255);
+                        EXIT;
+                end;
+        BaseName := s;
 end;
 
 {------------------------------------------------------------------------------
@@ -511,6 +551,13 @@ begin
   end;
 end;
 
+function IntToStr(n : LongInt):String;
+var r : string;
+begin
+  str(n, r);
+  IntToStr := r;
+end;
+
 { Main render routine }
 procedure Render;
 var
@@ -522,6 +569,7 @@ var
   chunk_len: Word;
   pi, off: Word;
   b: Byte;
+  s : string;
 begin
   { Seek to the first line to display }
   if not SeekToLine(top_line) then
@@ -535,21 +583,20 @@ begin
   line_num := top_line;
   row := 0;
 
-
-  { --- Status bar (row 24) --- }
+  { --- Status bar (row 0) --- }
   di := 0;
-  WriteStr(di, ' Line: ');
-  WriteDec(di, top_line + 1);
-  WriteStr(di, ' / ');
-  WriteDec(di, total_lines);
-  WriteStr(di, '  ');
-  if wrap_mode then
-    WriteStr(di, '[WRAP] ');
-  WriteStr(di, 'Esc=Quit');
+
+  s := IntToStr(top_line + 1) + '/' + IntToStr(total_lines) + ' ';
+  if wrap_mode then s := s + '[WRAP] ';
+  s := s + '  Esc=Quit';
+  while Length(printFileName) + 2 + Length(s) < screen_cols do s := ' ' + s;
+
+  WriteStr(di, ' ');
+  WriteStr(di, printFileName);
+  WriteStr(di, s);
 
   { Pad to the end of status line }
-  while di < screen_cols * 2 do
-  begin
+  while di < (screen_cols shl 1) do begin
     Video[di] := ' ';
     Video[di+1] := Chr(ATTR_STAT);
     Inc(di, 2);
@@ -562,7 +609,7 @@ begin
     if line_num >= total_lines then
     begin
       { Blank line }
-      FillChar(Video[di], screen_cols*2, Ord(' '));
+      FillChar(Video[di], screen_cols shl 1, Ord(' '));
       for col := 1 to screen_cols do
         Video[di + col*2 - 1] := Chr(ATTR_NORM);
       Inc(row);
@@ -636,8 +683,7 @@ begin
       otherwise it already advanced on LF or EOF. }
   end;
   di := screen_cols shl 1;
-  while di < (screen_cols * screen_rows) shl 1 do
-  begin
+  while di < (screen_cols * screen_rows) shl 1 do begin
     Video[di+1] := SysChars[ord(Video[di])];
     Inc(di, 2);
   end;
@@ -646,6 +692,16 @@ end;
 procedure Init;
 var     i : integer;
 begin
+
+  screen_cols  := getwidth;
+  screen_rows  := getheight;
+  text_rows := screen_rows - 1;
+  if (not isVga) and IsMonochrome then begin
+          Video := Ptr(SegB000,0000);
+          FillChar(SysChars[1], 255, 7);
+          SysChars[0] := #255;
+          Exit;
+  end else Video := Ptr(SegB800,0000);
         FillChar(SysChars[1], 255, Chr(ATTR_NORM));
         SysChars[0] := #255;
         SysChars[ord('+')] := Chr(ATTR_SPEC);
@@ -692,11 +748,6 @@ begin
         SysChars[ord('7')] := Chr(ATTR_DIGIT);
         SysChars[ord('8')] := Chr(ATTR_DIGIT);
         SysChars[ord('9')] := Chr(ATTR_DIGIT);
-
-  screen_cols  := getwidth;
-  screen_rows  := getheight;
-  text_rows := screen_rows - 1;
-  Video := Ptr(SegB800,0000);
 end;
 
 {==============================================================================
@@ -708,7 +759,7 @@ begin
   Init;
   { Parse command line }
   ParseArgs;
-
+  printFileName := Copy(BaseName(filename), 1, screen_cols - 32);
   { Open file }
   Assign(f, filename);
   Reset(f, 1);
