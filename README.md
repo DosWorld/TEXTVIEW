@@ -73,15 +73,6 @@ This keeps RAM usage constant at ~256 KB (8 x 32 KB) regardless of file size, wh
 | Max visual lines | 524,288 (2048 checkpoints x 256 interval) |
 | RAM for file data | 256 KB (8 cached chunks) |
 
-## File List
-
-| File | Description |
-|------|-------------|
-| `TEXTVIEW.PAS` | Pascal source code |
-| `TEXTVIEW.EXE` | Pre-built DOS binary |
-| `TEXTREAD.ZIP` | Original source      |
-| `THECHAIR.TXT` | Sample text file for testing (72 KB, ~1100 lines) |
-
 ## License
 
 Public domain.
