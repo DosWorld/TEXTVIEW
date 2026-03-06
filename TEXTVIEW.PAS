@@ -82,6 +82,12 @@ var
   text_rows,
   screen_cols, screen_rows : Integer;
   SysChars, printFileName : String;
+
+  topline_color : byte;
+  normal_color : byte;
+  digit_color : byte;
+  spec_color : byte;
+
 {----------------------------- Helper procedures -----------------------------}
 procedure Render;forward;
 
@@ -531,22 +537,7 @@ begin
   for i := 1 to Length(s) do
   begin
     Video[di] := s[i];
-    Video[di+1] := Chr(ATTR_STAT);
-    Inc(di, 2);
-  end;
-end;
-
-{ Write a word as decimal to video at DI }
-procedure WriteDec(var di: Word; val: Word);
-var
-  buf: string[16];
-  i: Integer;
-begin
-  Str(val, buf);
-  for i := 1 to Length(buf) do
-  begin
-    Video[di] := buf[i];
-    Video[di+1] := Chr(ATTR_STAT);
+    Video[di+1] := Chr(topline_color);
     Inc(di, 2);
   end;
 end;
@@ -588,17 +579,16 @@ begin
 
   s := IntToStr(top_line + 1) + '/' + IntToStr(total_lines) + ' ';
   if wrap_mode then s := s + '[WRAP] ';
-  s := s + '  Esc=Quit';
+  s := s + '  Esc=Quit ';
   while Length(printFileName) + 2 + Length(s) < screen_cols do s := ' ' + s;
 
   WriteStr(di, ' ');
   WriteStr(di, printFileName);
   WriteStr(di, s);
-
+  di := 0;
   { Pad to the end of status line }
   while di < (screen_cols shl 1) do begin
-    Video[di] := ' ';
-    Video[di+1] := Chr(ATTR_STAT);
+    Video[di+1] := Chr(topline_color);
     Inc(di, 2);
   end;
 
@@ -610,8 +600,6 @@ begin
     begin
       { Blank line }
       FillChar(Video[di], screen_cols shl 1, Ord(' '));
-      for col := 1 to screen_cols do
-        Video[di + col*2 - 1] := Chr(ATTR_NORM);
       Inc(row);
       Inc(line_num);
       Continue;
@@ -622,8 +610,6 @@ begin
     begin
       { Page error -> blank line }
       FillChar(Video[di], screen_cols*2, Ord(' '));
-      for col := 1 to screen_cols do
-        Video[di + col*2 - 1] := Chr(ATTR_NORM);
       Inc(row);
       Inc(line_num);
       Continue;
@@ -650,7 +636,6 @@ begin
       Inc(off);
 
       if b = 13 then Continue;                { skip CR }
-
       if b = 10 then                          { LF -> end of logical line }
       begin
         Inc(line_num);
@@ -659,7 +644,6 @@ begin
 
       { Normal character }
       Video[di] := Chr(b);
-      Video[di+1] := Chr(ATTR_NORM);
       Inc(di, 2);
       Inc(col);
 
@@ -673,7 +657,6 @@ begin
     while col < screen_cols do
     begin
       Video[di] := ' ';
-      Video[di+1] := Chr(ATTR_NORM);
       Inc(di, 2);
       Inc(col);
     end;
@@ -692,62 +675,70 @@ end;
 procedure Init;
 var     i : integer;
 begin
-
-  screen_cols  := getwidth;
-  screen_rows  := getheight;
-  text_rows := screen_rows - 1;
-  if (not isVga) and IsMonochrome then begin
-          Video := Ptr(SegB000,0000);
-          FillChar(SysChars[1], 255, 7);
-          SysChars[0] := #255;
-          Exit;
-  end else Video := Ptr(SegB800,0000);
-        FillChar(SysChars[1], 255, Chr(ATTR_NORM));
+        topline_color := $70;
+        normal_color := 7;
+        digit_color := 7;
+        spec_color := 7;
+        screen_cols  := getwidth;
+        screen_rows  := getheight;
+        text_rows := screen_rows - 1;
+        if (not isVga) and IsMonochrome then begin
+                Video := Ptr(SegB000,0000);
+                FillChar(SysChars[1], 255, 7);
+                SysChars[0] := #255;
+        end else begin
+                Video := Ptr(SegB800,0000);
+                topline_color := ATTR_STAT;
+                normal_color := ATTR_NORM;
+                digit_color := ATTR_DIGIT;
+                spec_color := ATTR_SPEC;
+        end;
+        FillChar(SysChars[1], 255, Chr(normal_color));
         SysChars[0] := #255;
-        SysChars[ord('+')] := Chr(ATTR_SPEC);
-        SysChars[ord('-')] := Chr(ATTR_SPEC);
-        SysChars[ord('*')] := Chr(ATTR_SPEC);
-        SysChars[ord('.')] := Chr(ATTR_SPEC);
-        SysChars[ord(',')] := Chr(ATTR_SPEC);
-        SysChars[ord('?')] := Chr(ATTR_SPEC);
-        SysChars[ord('!')] := Chr(ATTR_SPEC);
-        SysChars[ord('(')] := Chr(ATTR_SPEC);
-        SysChars[ord(')')] := Chr(ATTR_SPEC);
-        SysChars[ord('[')] := Chr(ATTR_SPEC);
-        SysChars[ord(']')] := Chr(ATTR_SPEC);
-        SysChars[ord('{')] := Chr(ATTR_SPEC);
-        SysChars[ord('}')] := Chr(ATTR_SPEC);
-        SysChars[ord('|')] := Chr(ATTR_SPEC);
-        SysChars[ord('/')] := Chr(ATTR_SPEC);
-        SysChars[ord('\')] := Chr(ATTR_SPEC);
-        SysChars[ord('%')] := Chr(ATTR_SPEC);
-        SysChars[ord('@')] := Chr(ATTR_SPEC);
-        SysChars[ord('#')] := Chr(ATTR_SPEC);
-        SysChars[ord('$')] := Chr(ATTR_SPEC);
-        SysChars[ord('%')] := Chr(ATTR_SPEC);
-        SysChars[ord('^')] := Chr(ATTR_SPEC);
-        SysChars[ord('&')] := Chr(ATTR_SPEC);
-        SysChars[ord('_')] := Chr(ATTR_SPEC);
-        SysChars[ord('=')] := Chr(ATTR_SPEC);
-        SysChars[ord('<')] := Chr(ATTR_SPEC);
-        SysChars[ord('>')] := Chr(ATTR_SPEC);
-        SysChars[ord('~')] := Chr(ATTR_SPEC);
-        SysChars[ord('`')] := Chr(ATTR_SPEC);
-        SysChars[ord('"')] := Chr(ATTR_SPEC);
-        SysChars[$27] := Chr(ATTR_SPEC);
-        for i := $b3 to $da do SysChars[i] := Chr(ATTR_SPEC);
-        SysChars[ord(':')] := Chr(ATTR_SPEC);
-        SysChars[ord(';')] := Chr(ATTR_SPEC);
-        SysChars[ord('0')] := Chr(ATTR_DIGIT);
-        SysChars[ord('1')] := Chr(ATTR_DIGIT);
-        SysChars[ord('2')] := Chr(ATTR_DIGIT);
-        SysChars[ord('3')] := Chr(ATTR_DIGIT);
-        SysChars[ord('4')] := Chr(ATTR_DIGIT);
-        SysChars[ord('5')] := Chr(ATTR_DIGIT);
-        SysChars[ord('6')] := Chr(ATTR_DIGIT);
-        SysChars[ord('7')] := Chr(ATTR_DIGIT);
-        SysChars[ord('8')] := Chr(ATTR_DIGIT);
-        SysChars[ord('9')] := Chr(ATTR_DIGIT);
+        SysChars[ord('+')] := Chr(spec_color);
+        SysChars[ord('-')] := Chr(spec_color);
+        SysChars[ord('*')] := Chr(spec_color);
+        SysChars[ord('.')] := Chr(spec_color);
+        SysChars[ord(',')] := Chr(spec_color);
+        SysChars[ord('?')] := Chr(spec_color);
+        SysChars[ord('!')] := Chr(spec_color);
+        SysChars[ord('(')] := Chr(spec_color);
+        SysChars[ord(')')] := Chr(spec_color);
+        SysChars[ord('[')] := Chr(spec_color);
+        SysChars[ord(']')] := Chr(spec_color);
+        SysChars[ord('{')] := Chr(spec_color);
+        SysChars[ord('}')] := Chr(spec_color);
+        SysChars[ord('|')] := Chr(spec_color);
+        SysChars[ord('/')] := Chr(spec_color);
+        SysChars[ord('\')] := Chr(spec_color);
+        SysChars[ord('%')] := Chr(spec_color);
+        SysChars[ord('@')] := Chr(spec_color);
+        SysChars[ord('#')] := Chr(spec_color);
+        SysChars[ord('$')] := Chr(spec_color);
+        SysChars[ord('%')] := Chr(spec_color);
+        SysChars[ord('^')] := Chr(spec_color);
+        SysChars[ord('&')] := Chr(spec_color);
+        SysChars[ord('_')] := Chr(spec_color);
+        SysChars[ord('=')] := Chr(spec_color);
+        SysChars[ord('<')] := Chr(spec_color);
+        SysChars[ord('>')] := Chr(spec_color);
+        SysChars[ord('~')] := Chr(spec_color);
+        SysChars[ord('`')] := Chr(spec_color);
+        SysChars[ord('"')] := Chr(spec_color);
+        SysChars[$27] := Chr(spec_color);
+        for i := $b3 to $da do SysChars[i] := Chr(spec_color);
+        SysChars[ord(':')] := Chr(spec_color);
+        SysChars[ord(';')] := Chr(spec_color);
+        SysChars[ord('0')] := Chr(digit_color);
+        SysChars[ord('1')] := Chr(digit_color);
+        SysChars[ord('2')] := Chr(digit_color);
+        SysChars[ord('3')] := Chr(digit_color);
+        SysChars[ord('4')] := Chr(digit_color);
+        SysChars[ord('5')] := Chr(digit_color);
+        SysChars[ord('6')] := Chr(digit_color);
+        SysChars[ord('7')] := Chr(digit_color);
+        SysChars[ord('8')] := Chr(digit_color);
+        SysChars[ord('9')] := Chr(digit_color);
 end;
 
 {==============================================================================
@@ -760,6 +751,7 @@ begin
   { Parse command line }
   ParseArgs;
   printFileName := Copy(BaseName(filename), 1, screen_cols - 32);
+
   { Open file }
   Assign(f, filename);
   Reset(f, 1);

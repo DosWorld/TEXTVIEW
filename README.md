@@ -16,6 +16,7 @@ An 8086 text file viewer for MS-DOS with demand-paged virtual memory.
 
 - Support screens larger 80*25.
 - Text highlighting
+- Support monorchrome graphic cards (like Hercules)
 
 ## Usage
 
@@ -50,7 +51,7 @@ This produces `TEXTVIEW.EXE`, ready to run on any DOS system.
 
 ### Demand Paging
 
-Unlike traditional DOS viewers that load entire files into memory, TEXTREAD uses a demand-paged design:
+Unlike traditional DOS viewers that load entire files into memory, TEXTVIEW uses a demand-paged design:
 
 1. **Scan phase** — The file is streamed once at startup through a temporary 32 KB buffer (freed afterwards) to count lines and record checkpoints every 256 visual lines.
 
@@ -67,7 +68,6 @@ This keeps RAM usage constant at ~256 KB (8 x 32 KB) regardless of file size, wh
 | Max file size | 32 MB (1024 pieces x 32 KB) |
 | Max visual lines | 524,288 (2048 checkpoints x 256 interval) |
 | RAM for file data | 256 KB (8 cached chunks) |
-| Video mode | 80x25 CGA/EGA/VGA text |
 
 ## File List
 
