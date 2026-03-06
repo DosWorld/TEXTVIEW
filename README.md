@@ -11,7 +11,7 @@ An 8086 text file viewer for MS-DOS with demand-paged virtual memory.
 - Demand-paged architecture — only 256 KB of RAM used regardless of file size
 - LRU cache with 8 resident 32 KB chunks, loaded from disk on demand
 - Checkpoint table for fast O(1) random seeking to any line
-- Direct VRAM rendering (CGA/EGA/VGA 80x25 text mode)
+- Direct VRAM rendering
 - Word wrap mode (`--wrap` flag)
 - Keyboard navigation: PgUp/PgDn, Up/Down, Home/End, Esc to quit
 
@@ -32,8 +32,8 @@ TEXTVIEW --wrap <filename>
 
 | Key | Action |
 |-----|--------|
-| PgDn | Scroll down one page (24 lines) |
-| PgUp | Scroll up one page |
+| PgDn | Scroll down one screen |
+| PgUp | Scroll up one screen |
 | Down | Scroll down one line |
 | Up | Scroll up one line |
 | Home | Jump to start of file |
