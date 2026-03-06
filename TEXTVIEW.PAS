@@ -116,42 +116,23 @@ begin
 end;
 
 {------------------------------------------------------------------------------
-  Parse command tail from PSP at $80
+  Parse command line
 ------------------------------------------------------------------------------}
 procedure ParseArgs;
-var
-  p: Byte;
-  i, len: Integer;
-  s: string;
-  arg: string;
 begin
   wrap_mode := False;
   filename := '';
-  p := Mem[PrefixSeg:$80];                 { length of command tail }
-  if p = 0 then ErrorMsg('Usage: TEXTREAD [--wrap] <filename>');
-  s[0] := Chr(p);
-  Move(Mem[PrefixSeg:$81], s[1], p);
-
-  i := 1;
-  while (i <= Length(s)) and (s[i] = ' ') do Inc(i);
-  if i > Length(s) then ErrorMsg('Usage: TEXTREAD [--wrap] <filename>');
-
-  { Check for --wrap }
-  if (Copy(s, i, 6) = '--wrap') then
-  begin
-    wrap_mode := True;
-    Inc(i, 6);
-    while (i <= Length(s)) and (s[i] = ' ') do Inc(i);
-  end;
-
-  arg := '';
-  while (i <= Length(s)) and (s[i] > ' ') do
-  begin
-    arg := arg + s[i];
-    Inc(i);
-  end;
-  if arg = '' then ErrorMsg('Usage: TEXTREAD [--wrap] <filename>');
-  filename := arg;
+          if paramCount = 1 then begin
+                      filename := ParamStr(1);
+                      exit;
+          end else if paramCount = 2 then begin
+              if paramstr(1) = '--wrap' then begin
+                      wrap_mode := True;
+                      filename := ParamStr(2);
+                      exit;
+              end;
+          end;
+  ErrorMsg('Usage: TEXTVIEW [--wrap] <filename>');
 end;
 
 {------------------------------------------------------------------------------
@@ -170,14 +151,14 @@ end;
 {------------------------------------------------------------------------------
   Clear screen using direct video access
 ------------------------------------------------------------------------------}
-procedure ClearScreen;
+procedure ClearScreen(clr : BYTE);
 var
   i: Integer;
 begin
   for i := 0 to screen_rows * screen_cols - 1 do
   begin
     Video[i*2] := ' ';
-    Video[i*2+1] := Chr(ATTR_NORM);
+    Video[i*2+1] := Chr(clr);
   end;
 end;
 
@@ -542,7 +523,7 @@ begin
   { Seek to the first line to display }
   if not SeekToLine(top_line) then
   begin
-    ClearScreen;
+    ClearScreen(ATTR_NORM);
     Exit;
   end;
 
@@ -694,7 +675,7 @@ begin
   end;
 
   { Initial display }
-  ClearScreen;
+  ClearScreen(ATTR_NORM);
   top_line := 0;
   Render;
 
@@ -721,4 +702,5 @@ begin
   { Clean up }
   Close(f);
   FreeAll;
+  ClearScreen(7);
 end.
