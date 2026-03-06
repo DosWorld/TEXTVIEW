@@ -20,6 +20,7 @@ An 8086 text file viewer for MS-DOS with demand-paged virtual memory.
 - Support screens larger 80*25.
 - Text highlighting
 - Support monorchrome graphic cards (like Hercules)
+- Long File Name (LFN) support
 
 ## Usage
 

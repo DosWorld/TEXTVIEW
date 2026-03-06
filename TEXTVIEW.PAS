@@ -15,6 +15,7 @@ program TextView;
 
   https://github.com/DosWorld/TEXTVIEW
 ==============================================================================}
+uses dos;
 
 const
   ATTR_NORM    = $1F;                 { light grey on black }
@@ -40,6 +41,12 @@ type
   TChunk = array[0..CHUNK_SIZE-1] of Byte;
   PChunk = ^TChunk;
 
+TLFNFile = record
+        Handle    : Word;
+        IsEOF     : Boolean;
+        LastError : Integer;
+end;
+
 var
   { Direct video memory access }
   Video: PChar;
@@ -49,7 +56,7 @@ var
   wrap_mode: Boolean;
 
   { File handle }
-  f: file;
+  f: TLFNFile;
 
   { Piece table }
   pt_count: Word;
@@ -90,6 +97,84 @@ var
 
 {----------------------------- Helper procedures -----------------------------}
 procedure Render;forward;
+
+function LFN_Reset(var F: TLFNFile; FileName: String): Boolean;
+var     Regs: Registers;
+        P: PChar;
+begin
+        FillChar(F, SizeOf(F), 0);
+        FileName := FileName + #0;
+        P := @FileName[1];
+
+        Regs.AX := $716C;
+        Regs.BX := 0;
+        Regs.CX := 0;
+        Regs.DX := 1;
+        Regs.DS := Seg(P^);
+        Regs.SI := Ofs(P^);
+        Regs.Flags := FCarry;
+        Intr($21, Regs);
+
+        if ((Regs.Flags and FCarry) <> 0) then begin
+                Regs.AX := $3D00;
+                Regs.DS := Seg(P^);
+                Regs.DX := Ofs(P^);
+                Intr($21, Regs);
+        end;
+
+        if (Regs.Flags and FCarry) <> 0 then begin
+                F.LastError := Regs.AX;
+                LFN_Reset := False;
+        end else begin
+                F.Handle := Regs.AX;
+                F.LastError := 0;
+                LFN_Reset := True;
+        end;
+end;
+
+function LFN_BlockRead(var F: TLFNFile; var buf; count : Word): Word;
+var     Regs: Registers;
+begin
+        Regs.AX := $3F00;
+        Regs.BX := F.Handle;
+        Regs.CX := count;
+        Regs.DS := Seg(buf);
+        Regs.DX := Ofs(buf);
+        Intr($21, Regs);
+
+        if (Regs.Flags and FCarry) <> 0 then begin
+                F.IsEOF := True;
+                LFN_BlockRead := 0;
+        end else begin
+                if Regs.AX = 0 then F.IsEOF := True;
+                LFN_BlockRead := Regs.AX;
+        end;
+end;
+
+procedure LFN_Seek(var F: TLFNFile; position : Longint);
+var     Regs: Registers;
+begin
+        Regs.AX := $4200;
+        Regs.BX := F.Handle;
+        Regs.DX := position AND $FFFF;
+        Regs.CX := (position SHR 16) AND $FFFF;
+        Intr($21, Regs);
+        IF Regs.Flags AND FCarry <> 0 Then F.LastError := Regs.AX
+        ELSE F.LastError := 0;
+end;
+
+procedure LFN_Close(var F: TLFNFile);
+var     Regs: Registers;
+begin
+        Regs.AX := $3E00;
+        Regs.BX := F.Handle;
+        Intr($21, Regs);
+end;
+
+function LFN_Eof(var F: TLFNFile): Boolean;
+begin
+        LFN_Eof := F.IsEOF;
+end;
 
 FUNCTION IsVga : BOOLEAN;ASSEMBLER;
 ASM
@@ -244,10 +329,10 @@ begin
   while True do
   begin
     pos_in_file := LongInt(piece) * CHUNK_SIZE;
-    Seek(f, pos_in_file);
-    if IOResult <> 0 then Break;
+    LFN_Seek(f, pos_in_file);
+    if F.LastError <> 0 then Break;
 
-    BlockRead(f, scan_buf^, CHUNK_SIZE, bytes_read);
+    bytes_read := LFN_BlockRead(f, scan_buf^, CHUNK_SIZE);
     if bytes_read = 0 then Break;
 
     if piece >= MAX_PIECES then Break;      { too many pieces }
@@ -402,15 +487,15 @@ begin
 
   { Seek to piece offset in file }
   pos := LongInt(piece) * CHUNK_SIZE;
-  Seek(f, pos);
-  if IOResult <> 0 then
+  LFN_Seek(f, pos);
+  if F.LastError <> 0 then
   begin
     FreeMem(newptr, CHUNK_SIZE);
     PageIn := nil;
     Exit;
   end;
 
-  BlockRead(f, newptr^, CHUNK_SIZE, bytes_read);
+  bytes_read := LFN_BlockRead(f, newptr^, CHUNK_SIZE);
   { Ignore short read; pt_len[piece] contains actual length }
 
   { Fill cache slot }
@@ -753,9 +838,7 @@ begin
   printFileName := Copy(BaseName(filename), 1, screen_cols - 32);
 
   { Open file }
-  Assign(f, filename);
-  Reset(f, 1);
-  if IOResult <> 0 then ErrorMsg('Error: cannot open file');
+  if not LFN_Reset(f, filename) then ErrorMsg('Error: cannot open file');
 
   { Initial message }
   Writeln('Scanning...');
@@ -804,7 +887,7 @@ begin
   end;
 
   { Clean up }
-  Close(f);
+  LFN_Close(f);
   FreeAll;
   ClearScreen(7);
 end.
