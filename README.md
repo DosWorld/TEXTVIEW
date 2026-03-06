@@ -15,6 +15,7 @@ An 8086 text file viewer for MS-DOS with demand-paged virtual memory.
 ### This fork features
 
 - Support screens larger 80*25.
+- Text highlighting
 
 ## Usage
 

@@ -19,6 +19,8 @@ program TextView;
 const
   ATTR_NORM    = $1F;                 { light grey on black }
   ATTR_STAT    = $30;                 { black on light grey }
+  ATTR_SPEC    = $1E;
+  ATTR_DIGIT   = $1B;
 
   MAX_PIECES   = 1024;                { up to 32 MB file (1024 * 32K) }
   MAX_CACHE    = 8;                   { number of cached 32K chunks }
@@ -79,6 +81,7 @@ var
 
   text_rows,
   screen_cols, screen_rows : Integer;
+  SysChars : String;
 {----------------------------- Helper procedures -----------------------------}
 procedure Render;forward;
 
@@ -632,6 +635,68 @@ begin
     { If we exited because of wrap, line_num stays unchanged;
       otherwise it already advanced on LF or EOF. }
   end;
+  di := screen_cols shl 1;
+  while di < (screen_cols * screen_rows) shl 1 do
+  begin
+    Video[di+1] := SysChars[ord(Video[di])];
+    Inc(di, 2);
+  end;
+end;
+
+procedure Init;
+var     i : integer;
+begin
+        FillChar(SysChars[1], 255, Chr(ATTR_NORM));
+        SysChars[0] := #255;
+        SysChars[ord('+')] := Chr(ATTR_SPEC);
+        SysChars[ord('-')] := Chr(ATTR_SPEC);
+        SysChars[ord('*')] := Chr(ATTR_SPEC);
+        SysChars[ord('.')] := Chr(ATTR_SPEC);
+        SysChars[ord(',')] := Chr(ATTR_SPEC);
+        SysChars[ord('?')] := Chr(ATTR_SPEC);
+        SysChars[ord('!')] := Chr(ATTR_SPEC);
+        SysChars[ord('(')] := Chr(ATTR_SPEC);
+        SysChars[ord(')')] := Chr(ATTR_SPEC);
+        SysChars[ord('[')] := Chr(ATTR_SPEC);
+        SysChars[ord(']')] := Chr(ATTR_SPEC);
+        SysChars[ord('{')] := Chr(ATTR_SPEC);
+        SysChars[ord('}')] := Chr(ATTR_SPEC);
+        SysChars[ord('|')] := Chr(ATTR_SPEC);
+        SysChars[ord('/')] := Chr(ATTR_SPEC);
+        SysChars[ord('\')] := Chr(ATTR_SPEC);
+        SysChars[ord('%')] := Chr(ATTR_SPEC);
+        SysChars[ord('@')] := Chr(ATTR_SPEC);
+        SysChars[ord('#')] := Chr(ATTR_SPEC);
+        SysChars[ord('$')] := Chr(ATTR_SPEC);
+        SysChars[ord('%')] := Chr(ATTR_SPEC);
+        SysChars[ord('^')] := Chr(ATTR_SPEC);
+        SysChars[ord('&')] := Chr(ATTR_SPEC);
+        SysChars[ord('_')] := Chr(ATTR_SPEC);
+        SysChars[ord('=')] := Chr(ATTR_SPEC);
+        SysChars[ord('<')] := Chr(ATTR_SPEC);
+        SysChars[ord('>')] := Chr(ATTR_SPEC);
+        SysChars[ord('~')] := Chr(ATTR_SPEC);
+        SysChars[ord('`')] := Chr(ATTR_SPEC);
+        SysChars[ord('"')] := Chr(ATTR_SPEC);
+        SysChars[$27] := Chr(ATTR_SPEC);
+        for i := $b3 to $da do SysChars[i] := Chr(ATTR_SPEC);
+        SysChars[ord(':')] := Chr(ATTR_SPEC);
+        SysChars[ord(';')] := Chr(ATTR_SPEC);
+        SysChars[ord('0')] := Chr(ATTR_DIGIT);
+        SysChars[ord('1')] := Chr(ATTR_DIGIT);
+        SysChars[ord('2')] := Chr(ATTR_DIGIT);
+        SysChars[ord('3')] := Chr(ATTR_DIGIT);
+        SysChars[ord('4')] := Chr(ATTR_DIGIT);
+        SysChars[ord('5')] := Chr(ATTR_DIGIT);
+        SysChars[ord('6')] := Chr(ATTR_DIGIT);
+        SysChars[ord('7')] := Chr(ATTR_DIGIT);
+        SysChars[ord('8')] := Chr(ATTR_DIGIT);
+        SysChars[ord('9')] := Chr(ATTR_DIGIT);
+
+  screen_cols  := getwidth;
+  screen_rows  := getheight;
+  text_rows := screen_rows - 1;
+  Video := Ptr(SegB800,0000);
 end;
 
 {==============================================================================
@@ -640,11 +705,7 @@ end;
 var
   scan: Byte;
 begin
-  screen_cols  := getwidth;
-  screen_rows  := getheight;
-  text_rows := screen_rows - 1;
-  Video := Ptr(SegB800,0000);
-
+  Init;
   { Parse command line }
   ParseArgs;
 
