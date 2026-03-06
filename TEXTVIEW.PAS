@@ -266,7 +266,10 @@ begin
                       exit;
               end;
           end;
-  ErrorMsg('Usage: TEXTVIEW [--wrap] <filename>');
+  WriteLn('Copyright (c) 2026 cookertron, DosWorld.  License: Public domain');
+  WriteLn('https://github.com/DosWorld/TEXTVIEW');
+  WriteLn;
+  ErrorMsg('Usage: '+BaseName(ParamStr(0))+' [--wrap] <filename>');
 end;
 
 {------------------------------------------------------------------------------
