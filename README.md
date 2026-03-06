@@ -12,6 +12,7 @@ An 8086 text file viewer for MS-DOS with demand-paged virtual memory.
 - Word wrap mode (`--wrap` flag)
 - Keyboard navigation: PgUp/PgDn, Up/Down, Home/End, Esc to quit
 
+### This fork features
 
 - Support screens larger 80*25.
 
