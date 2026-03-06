@@ -76,7 +76,7 @@ This keeps RAM usage constant at ~256 KB (8 x 32 KB) regardless of file size, wh
 
 | File | Description |
 |------|-------------|
-| `TEXTVIEW.PAS` | Assembly source code |
+| `TEXTVIEW.PAS` | Pascal source code |
 | `TEXTVIEW.EXE` | Pre-built DOS binary |
 | `TEXTREAD.ZIP` | Original source      |
 | `THECHAIR.TXT` | Sample text file for testing (72 KB, ~1100 lines) |
