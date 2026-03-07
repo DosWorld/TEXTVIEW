@@ -90,6 +90,8 @@ var
   screen_cols, screen_rows : Integer;
   SysChars, printFileName : String;
 
+  firstTime : boolean;
+
   topline_color : byte;
   normal_color : byte;
   digit_color : byte;
@@ -664,14 +666,18 @@ begin
 
   { --- Status bar (row 0) --- }
   di := 0;
+  if not firstTime then begin
+    s := IntToStr(top_line + 1) + '/' + IntToStr(total_lines) + ' ';
+    if wrap_mode then s := s + 'WRAP ';
+    s := s + IntToStr((Longint(100)*(top_line + 1)) div total_lines) + '%';
+    while Length(printFileName) + 2 + Length(s) < screen_cols do s := ' ' + s;
 
-  s := IntToStr(top_line + 1) + '/' + IntToStr(total_lines) + ' ';
-  if wrap_mode then s := s + '[WRAP] ';
-  s := s + '  Esc=Quit ';
-  while Length(printFileName) + 2 + Length(s) < screen_cols do s := ' ' + s;
-
-  WriteStr(di, ' ');
-  WriteStr(di, printFileName);
+    WriteStr(di, ' ');
+    WriteStr(di, printFileName);
+  end else begin
+    s := ' Press <Esc> to quit or arrow key to navigation';
+    firstTime := False;
+  end;
   WriteStr(di, s);
   di := 0;
   { Pad to the end of status line }
@@ -682,7 +688,7 @@ begin
 
   while row < text_rows do
   begin
-    di := (row + 1) * screen_cols * 2;
+    di := ((row + 1) * screen_cols) shl 1;
 
     if line_num >= total_lines then
     begin
@@ -697,7 +703,7 @@ begin
     if chunk = nil then
     begin
       { Page error -> blank line }
-      FillChar(Video[di], screen_cols*2, Ord(' '));
+      FillChar(Video[di], screen_cols shl 1, Ord(' '));
       Inc(row);
       Inc(line_num);
       Continue;
@@ -737,8 +743,7 @@ begin
 
       { Wrap mode: if we reached the right edge, the logical line continues
         on the next screen row without incrementing line_num. }
-      if wrap_mode and (col >= screen_cols) then
-        Break;
+      if wrap_mode and (col >= screen_cols) then Break;
     end;
 
     { Pad the rest of the row with spaces }
@@ -763,6 +768,7 @@ end;
 procedure Init;
 var     i : integer;
 begin
+        firstTime := True;
         topline_color := $70;
         normal_color := 7;
         digit_color := 7;
@@ -772,8 +778,6 @@ begin
         text_rows := screen_rows - 1;
         if (not isVga) and IsMonochrome then begin
                 Video := Ptr(SegB000,0000);
-                FillChar(SysChars[1], 255, 7);
-                SysChars[0] := #255;
         end else begin
                 Video := Ptr(SegB800,0000);
                 topline_color := ATTR_STAT;
@@ -865,7 +869,7 @@ begin
   end;
 
   { Initial display }
-  ClearScreen(ATTR_NORM);
+  ClearScreen(normal_color);
   top_line := 0;
   Render;
 
